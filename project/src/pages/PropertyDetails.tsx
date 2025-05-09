@@ -189,27 +189,25 @@ const PropertyDetails: React.FC = () => {
         return;
       }
 
-      // Fetch owner's profile details
+      // Fetch owner's profile details using maybeSingle() instead of single()
       const { data: ownerProfile, error: ownerError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', property?.owner_id)
-        .single();
+        .maybeSingle();
 
       if (ownerError) {
         console.error('Error fetching owner profile:', ownerError);
         return;
       }
 
-      if (!ownerProfile) {
-        console.error('Owner profile not found');
-        return;
-      }
+      // Use default values if profile is not found
+      const ownerName = ownerProfile?.full_name || ownerProfile?.email || 'Pemilik Kost';
 
       navigate('/marketplace/chat', { 
         state: { 
           receiverId: property?.owner_id,
-          receiverName: ownerProfile.full_name || ownerProfile.email,
+          receiverName: ownerName,
           propertyId: property?.id,
           propertyName: property?.name
         } 
