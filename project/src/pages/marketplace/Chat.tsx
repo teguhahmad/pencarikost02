@@ -62,7 +62,8 @@ const Chat: React.FC = () => {
         return;
       }
 
-      const { data: chatMessages, error: messagesError } = await supabase
+      // Get all messages involving the current user
+      const { data: allMessages, error: messagesError } = await supabase
         .from('chat_messages')
         .select('*')
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
@@ -70,23 +71,22 @@ const Chat: React.FC = () => {
 
       if (messagesError) throw messagesError;
 
-      // Get unique user IDs from messages
-      const userIds = new Set([
-        ...chatMessages.map(msg => msg.sender_id),
-        ...chatMessages.map(msg => msg.receiver_id)
-      ].filter(id => id !== user.id));
-
-      if (userIds.size === 0) {
+      if (!allMessages || allMessages.length === 0) {
         setChats([]);
         setIsLoading(false);
         return;
       }
 
-      // Get user profiles
+      // Get unique user IDs from messages
+      const userIds = [...new Set(allMessages.map(msg => 
+        msg.sender_id === user.id ? msg.receiver_id : msg.sender_id
+      ))];
+
+      // Get profiles for these users
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, email, full_name')
-        .in('id', Array.from(userIds));
+        .in('id', userIds);
 
       if (profilesError) throw profilesError;
 
@@ -94,20 +94,15 @@ const Chat: React.FC = () => {
       const { data: properties, error: propertiesError } = await supabase
         .from('properties')
         .select('id, name, owner_id')
-        .in('owner_id', Array.from(userIds));
+        .in('owner_id', userIds);
 
       if (propertiesError) throw propertiesError;
 
-      if (!profiles || profiles.length === 0) {
-        setChats([]);
-        setIsLoading(false);
-        return;
-      }
-
       // Process chat list
-      const chatList = profiles.map(profile => {
-        const userMessages = chatMessages.filter(msg => 
-          msg.sender_id === profile.id || msg.receiver_id === profile.id
+      const chatList = userIds.map(userId => {
+        const profile = profiles?.find(p => p.id === userId);
+        const userMessages = allMessages.filter(msg => 
+          msg.sender_id === userId || msg.receiver_id === userId
         );
         const lastMessage = userMessages[0];
         const unreadCount = userMessages.filter(msg => 
@@ -115,12 +110,12 @@ const Chat: React.FC = () => {
         ).length;
 
         // Find property for this user
-        const userProperty = properties?.find(prop => prop.owner_id === profile.id);
+        const userProperty = properties?.find(prop => prop.owner_id === userId);
 
         return {
-          id: profile.id,
-          name: profile.full_name || profile.email || '',
-          email: profile.email || '',
+          id: userId,
+          name: profile?.full_name || profile?.email || 'Unknown User',
+          email: profile?.email || '',
           last_message: lastMessage?.content,
           last_message_time: lastMessage?.created_at,
           unread_count: unreadCount,
@@ -158,6 +153,9 @@ const Chat: React.FC = () => {
         .eq('sender_id', userId)
         .eq('receiver_id', user.id)
         .eq('read', false);
+
+      // Refresh chat list to update unread counts
+      loadChats();
     } catch (err) {
       console.error('Error loading messages:', err);
       setError('Failed to load messages');
