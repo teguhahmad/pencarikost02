@@ -50,32 +50,11 @@ const SavedProperties: React.FC = () => {
         return;
       }
 
-      // Get saved properties for the user
-      const { data: savedProperties, error: savedError } = await supabase
-        .from('saved_properties')
-        .select('property_id')
-        .eq('user_id', user.id);
-
-      if (savedError) throw savedError;
-
-      if (!savedProperties || savedProperties.length === 0) {
-        setSavedRooms([]);
-        setIsLoading(false);
-        return;
-      }
-
-      const propertyIds = savedProperties.map(sp => sp.property_id);
-
-      // Get properties and their room types
-      const { data: properties, error: propertiesError } = await supabase
-        .from('properties')
+      // Get saved rooms for the user
+      const { data: savedRoomsData, error: savedError } = await supabase
+        .from('saved_rooms')
         .select(`
-          id,
-          name,
-          address,
-          city,
-          email,
-          phone,
+          room_type_id,
           room_types (
             id,
             name,
@@ -88,43 +67,56 @@ const SavedProperties: React.FC = () => {
             enable_yearly_price,
             photos,
             max_occupancy,
-            renter_gender
+            renter_gender,
+            property_id,
+            properties (
+              id,
+              name,
+              address,
+              city,
+              email,
+              phone
+            )
           )
         `)
-        .in('id', propertyIds);
+        .eq('user_id', user.id);
 
-      if (propertiesError) throw propertiesError;
+      if (savedError) throw savedError;
+
+      if (!savedRoomsData || savedRoomsData.length === 0) {
+        setSavedRooms([]);
+        setIsLoading(false);
+        return;
+      }
 
       // Transform the data
-      const rooms: SavedRoom[] = [];
-      properties?.forEach(property => {
-        if (property.room_types) {
-          property.room_types.forEach(roomType => {
-            rooms.push({
-              id: roomType.id,
-              property: {
-                id: property.id,
-                name: property.name,
-                address: property.address,
-                city: property.city,
-                email: property.email,
-                phone: property.phone,
-              },
-              isSaved: true,
-              name: roomType.name,
-              price: roomType.price,
-              daily_price: roomType.daily_price,
-              weekly_price: roomType.weekly_price,
-              yearly_price: roomType.yearly_price,
-              enable_daily_price: roomType.enable_daily_price,
-              enable_weekly_price: roomType.enable_weekly_price,
-              enable_yearly_price: roomType.enable_yearly_price,
-              photos: roomType.photos,
-              max_occupancy: roomType.max_occupancy,
-              renter_gender: roomType.renter_gender,
-            });
-          });
-        }
+      const rooms: SavedRoom[] = savedRoomsData.map(saved => {
+        const roomType = saved.room_types;
+        const property = roomType.properties;
+        
+        return {
+          id: roomType.id,
+          property: {
+            id: property.id,
+            name: property.name,
+            address: property.address,
+            city: property.city,
+            email: property.email,
+            phone: property.phone,
+          },
+          isSaved: true,
+          name: roomType.name,
+          price: roomType.price,
+          daily_price: roomType.daily_price,
+          weekly_price: roomType.weekly_price,
+          yearly_price: roomType.yearly_price,
+          enable_daily_price: roomType.enable_daily_price,
+          enable_weekly_price: roomType.enable_weekly_price,
+          enable_yearly_price: roomType.enable_yearly_price,
+          photos: roomType.photos,
+          max_occupancy: roomType.max_occupancy,
+          renter_gender: roomType.renter_gender,
+        };
       });
 
       setSavedRooms(rooms);
@@ -142,12 +134,12 @@ const SavedProperties: React.FC = () => {
       if (!user) return;
 
       await supabase
-        .from('saved_properties')
+        .from('saved_rooms')
         .delete()
-        .eq('property_id', propertyId)
+        .eq('room_type_id', roomId)
         .eq('user_id', user.id);
 
-      setSavedRooms(prevRooms => prevRooms.filter(room => room.property.id !== propertyId));
+      setSavedRooms(prevRooms => prevRooms.filter(room => room.id !== roomId));
     } catch (err) {
       console.error('Error toggling save:', err);
     }
