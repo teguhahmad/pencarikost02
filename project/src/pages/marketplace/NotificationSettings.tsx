@@ -12,18 +12,20 @@ interface NotificationSettings {
   login_notifications: boolean;
 }
 
+const defaultSettings: NotificationSettings = {
+  email_notifications: true,
+  payment_reminders: true,
+  maintenance_updates: true,
+  new_tenants: true,
+  login_notifications: true,
+};
+
 const NotificationSettings: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<NotificationSettings>({
-    email_notifications: true,
-    payment_reminders: true,
-    maintenance_updates: true,
-    new_tenants: true,
-    login_notifications: true,
-  });
+  const [settings, setSettings] = useState<NotificationSettings>(defaultSettings);
 
   useEffect(() => {
     loadSettings();
@@ -32,6 +34,8 @@ const NotificationSettings: React.FC = () => {
   const loadSettings = async () => {
     try {
       setIsLoading(true);
+      setError(null);
+      
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -39,15 +43,17 @@ const NotificationSettings: React.FC = () => {
         return;
       }
 
+      // First try to get existing settings
       const { data, error } = await supabase
         .from('user_settings')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
       if (data) {
+        // Use existing settings
         setSettings({
           email_notifications: data.email_notifications,
           payment_reminders: data.payment_reminders,
@@ -55,6 +61,19 @@ const NotificationSettings: React.FC = () => {
           new_tenants: data.new_tenants,
           login_notifications: data.login_notifications,
         });
+      } else {
+        // Create default settings for the user
+        const { error: insertError } = await supabase
+          .from('user_settings')
+          .insert([{ 
+            user_id: user.id,
+            ...defaultSettings
+          }]);
+
+        if (insertError) throw insertError;
+        
+        // Keep default settings in state
+        setSettings(defaultSettings);
       }
     } catch (err) {
       console.error('Error loading settings:', err);
