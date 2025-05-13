@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Property, RoomType } from '../types';
 import { formatCurrency } from '../utils/formatters';
 import { supabase } from '../lib/supabase';
-import { MapPin, Users, Bath, Wifi, Coffee, Phone, Mail, MessageCircle, Send, ArrowLeft, ChevronLeft, ChevronDown, ChevronRight, Share, Heart, Building2, User, DoorClosed, Loader2, Table, Armchair as Chair, Bed, Shirt, Tv, Wind, CircleDot, Scale as Male, Scale as Female, Users2, Bike, Car, Camera, Sun, Shield, Clock, AlertCircle, X } from 'lucide-react';
+import { MapPin, Users, Bath, Wifi, Coffee, Phone, Mail, MessageCircle, Send, ArrowLeft, ChevronLeft, ChevronRight, Share, Heart, Building2, User, DoorClosed, Loader2, Table, Armchair as Chair, Bed, Shirt, Tv, Wind, CircleDot, Scale as Male, Scale as Female, Users2, Bike, Car, Camera, Sun, Shield, Clock, AlertCircle, X, ChevronDown } from 'lucide-react';
 import Button from '../components/ui/Button';
 
 const facilityIcons: Record<string, React.ReactNode> = {
@@ -189,7 +189,6 @@ const PropertyDetails: React.FC = () => {
         return;
       }
 
-      // Fetch owner's profile details using maybeSingle() instead of single()
       const { data: ownerProfile, error: ownerError } = await supabase
         .from('profiles')
         .select('*')
@@ -201,7 +200,6 @@ const PropertyDetails: React.FC = () => {
         return;
       }
 
-      // Use default values if profile is not found
       const ownerName = ownerProfile?.full_name || ownerProfile?.email || 'Pemilik Kost';
 
       navigate('/marketplace/chat', { 
@@ -488,7 +486,7 @@ const PropertyDetails: React.FC = () => {
                   <h2 className="text-lg font-semibold text-gray-900">Fasilitas Umum</h2>
                   <ChevronDown
                     className={`h-5 w-5 transition-transform duration-300 ${
-                      setIsCommonOpen ? 'rotate-180' : ''
+                      isCommonOpen ? 'rotate-180' : ''
                     }`}
                   />
                 </button>
@@ -498,7 +496,7 @@ const PropertyDetails: React.FC = () => {
                     isCommonOpen ? 'max-h-960 mt-4 opacity-100' : 'max-h-0 opacity-0'
                   }`}
                 >
-                  <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div className="grid grid-cols-2 gap-3">
                     {property.common_amenities.map((amenity, index) => (
                       <div
                         key={index}
@@ -555,7 +553,7 @@ const PropertyDetails: React.FC = () => {
                   onClick={() => setIsRulesOpen(prev => !prev)}
                   className="w-full flex justify-between items-center text-left"
                 >
-                    <h2 className="text-lg font-semibold text-gray-900">Tampilkan Peraturan Kost</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Tampilkan Peraturan Kost</h2>
                   <ChevronDown
                     className={`h-5 w-5 transition-transform duration-300 ${
                       isRulesOpen ? 'rotate-180' : ''
@@ -583,7 +581,7 @@ const PropertyDetails: React.FC = () => {
               </div>
             )}
             
-            <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
+            <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm mb-24">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Kontak
               </h2>
@@ -657,12 +655,13 @@ const PropertyDetails: React.FC = () => {
 
                   {roomType.room_facilities && roomType.room_facilities.length > 0 && (
                     <div className="mt-3">
-                      <p className="text-sm text-gray-500 mb-2">Fasilitas:</p>
+                      <p className="text-sm text-gray-500 mb-2">Fa
+silitas:</p>
                       <div className="flex flex-wrap gap-2">
                         {roomType.room_facilities.slice(0, 3).map((facility, index) => (
                           <span
                             key={index}
-                            className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600"
+                            className="px-2 py-1 bg-gray-100  rounded-full text-xs text-gray-600"
                           >
                             {facility}
                           </span>
@@ -673,7 +672,6 @@ const PropertyDetails: React.FC = () => {
                           </span>
                         )}
                       </div>
-                
                     </div>
                   )}
 
