@@ -82,7 +82,7 @@ const PropertyDetails: React.FC = () => {
   const [isCommonOpen, setIsCommonOpen] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [showRoomTypes, setShowRoomTypes] = useState(false);
-  
+
   useEffect(() => {
     loadPropertyDetails();
     checkIfSaved();
@@ -215,6 +215,36 @@ const PropertyDetails: React.FC = () => {
     }
   };
 
+  // Get all relevant images based on selected room type
+  const getGalleryImages = () => {
+    const images: string[] = [];
+    
+    // Add selected room type photos first
+    if (selectedRoomType?.photos && selectedRoomType.photos.length > 0) {
+      images.push(...selectedRoomType.photos);
+    }
+
+    // Add property photos
+    if (property?.photos && property.photos.length > 0) {
+      images.push(...property.photos);
+    }
+
+    // Add common amenities photos
+    if (property?.common_amenities_photos && property.common_amenities_photos.length > 0) {
+      images.push(...property.common_amenities_photos);
+    }
+
+    // Add parking amenities photos
+    if (property?.parking_amenities_photos && property.parking_amenities_photos.length > 0) {
+      images.push(...property.parking_amenities_photos);
+    }
+
+    return images;
+  };
+
+  // Get current gallery images
+  const galleryImages = getGalleryImages();
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -236,12 +266,6 @@ const PropertyDetails: React.FC = () => {
       </div>
     );
   }
-
-  const allImages = [
-    ...(property.photos || []),
-    ...(property.common_amenities_photos || []),
-    ...(property.parking_amenities_photos || []),
-  ];
 
   return (
     <div className="min-h-screen bg-gray-50 lg:bg-white">
@@ -313,17 +337,17 @@ const PropertyDetails: React.FC = () => {
         <div className="lg:grid lg:grid-cols-2 lg:gap-12">
           <div>
             <div className="relative aspect-[4/3] lg:rounded-2xl overflow-hidden bg-gray-100">
-              {allImages.length > 0 ? (
+              {galleryImages.length > 0 ? (
                 <>
                   <img
-                    src={allImages[activeImageIndex]}
+                    src={galleryImages[activeImageIndex]}
                     alt={`${property.name} - Image ${activeImageIndex + 1}`}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 flex items-center justify-between p-4">
                     <button
                       onClick={() => setActiveImageIndex(prev => 
-                        prev === 0 ? allImages.length - 1 : prev - 1
+                        prev === 0 ? galleryImages.length - 1 : prev - 1
                       )}
                       className="w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md shadow-sm"
                     >
@@ -331,7 +355,7 @@ const PropertyDetails: React.FC = () => {
                     </button>
                     <button
                       onClick={() => setActiveImageIndex(prev =>
-                        prev === allImages.length - 1 ? 0 : prev + 1
+                        prev === galleryImages.length - 1 ? 0 : prev + 1
                       )}
                       className="w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md shadow-sm"
                     >
@@ -341,7 +365,7 @@ const PropertyDetails: React.FC = () => {
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
                     <div className="bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full">
                       <p className="text-white text-sm">
-                        {activeImageIndex + 1} / {allImages.length}
+                        {activeImageIndex + 1} / {galleryImages.length}
                       </p>
                     </div>
                   </div>
@@ -352,6 +376,17 @@ const PropertyDetails: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* Add photo source indicator */}
+            {galleryImages.length > 0 && (
+              <div className="mt-2 text-sm text-gray-500 text-center">
+                {activeImageIndex < (selectedRoomType?.photos?.length || 0) ? (
+                  `Foto Kamar Tipe ${selectedRoomType?.name}`
+                ) : (
+                  'Foto Properti'
+                )}
+              </div>
+            )}
 
             <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm">
               <h1 className="text-2xl font-bold text-gray-900">{property.name}</h1>
@@ -655,13 +690,12 @@ const PropertyDetails: React.FC = () => {
 
                   {roomType.room_facilities && roomType.room_facilities.length > 0 && (
                     <div className="mt-3">
-                      <p className="text-sm text-gray-500 mb-2">Fa
-silitas:</p>
+                      <p className="text-sm text-gray-500 mb-2">Fasilitas:</p>
                       <div className="flex flex-wrap gap-2">
                         {roomType.room_facilities.slice(0, 3).map((facility, index) => (
                           <span
                             key={index}
-                            className="px-2 py-1 bg-gray-100  rounded-full text-xs text-gray-600"
+                            className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600"
                           >
                             {facility}
                           </span>
@@ -679,6 +713,7 @@ silitas:</p>
                     onClick={() => {
                       setSelectedRoomType(roomType);
                       setShowRoomTypes(false);
+                      setActiveImageIndex(0); // Reset image index when changing room type
                     }}
                     className="mt-4 w-full py-2 text-blue-600 font-medium bg-blue-50 rounded-lg hover:bg-blue-100"
                   >
