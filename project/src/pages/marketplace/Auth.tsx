@@ -27,18 +27,32 @@ const MarketplaceAuth: React.FC = () => {
 
     try {
       if (isLogin) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
+        const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password
         });
 
         if (signInError) throw signInError;
+        if (!user) throw new Error('Login failed');
+
+        // Check if user has properties
+        const { data: properties } = await supabase
+          .from('properties')
+          .select('id')
+          .eq('owner_id', user.id)
+          .limit(1);
+
+        if (properties && properties.length > 0) {
+          // User is a property owner, sign them out and show error
+          await supabase.auth.signOut();
+          throw new Error('Akun pengelola kost tidak dapat mengakses marketplace. Silahkan buat akun pencari kost terlebih dahulu.');
+        }
 
         const from = (location.state as any)?.from || '/marketplace';
         navigate(from);
       } else {
         if (formData.password !== formData.confirmPassword) {
-          throw new Error('Passwords do not match');
+          throw new Error('Kata sandi tidak cocok');
         }
 
         const { error: signUpError } = await supabase.auth.signUp({
@@ -58,7 +72,7 @@ const MarketplaceAuth: React.FC = () => {
       }
     } catch (err) {
       console.error('Auth error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan');
     } finally {
       setLoading(false);
     }
@@ -77,14 +91,14 @@ const MarketplaceAuth: React.FC = () => {
 
       if (error) throw error;
 
-      setSuccess('Password reset instructions have been sent to your email');
+      setSuccess('Instruksi reset kata sandi telah dikirim ke email Anda');
       setTimeout(() => {
         setIsForgotPassword(false);
         setSuccess(null);
       }, 3000);
     } catch (err) {
       console.error('Reset password error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan');
     } finally {
       setLoading(false);
     }
